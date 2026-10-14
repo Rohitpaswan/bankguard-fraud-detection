@@ -28,10 +28,12 @@ public class Account {
     private BigDecimal balance;
 
     @Column(nullable = false)
-    private String accountType; // SAVINGS, CURRENT
+    @Enumerated(EnumType.STRING)
+    private AccountType accountType; // SAVINGS, CURRENT
 
     @Column(nullable = false)
-    private String status; // ACTIVE, BLOCKED, CLOSED
+    @Enumerated(EnumType.STRING)
+    private AccountStatus status; // ACTIVE, BLOCKED, CLOSED
 
     @Column(nullable = false, unique = true)
     private String email;
@@ -52,13 +54,8 @@ public class Account {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-
-        if (balance == null) {
-            balance = BigDecimal.ZERO;
-        }
-
         if (status == null) {
-            status = "ACTIVE";
+            status = AccountStatus.PENDING;
         }
     }
 
