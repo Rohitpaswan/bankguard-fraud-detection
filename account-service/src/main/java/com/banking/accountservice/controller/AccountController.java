@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/api/v1/accounts/")
 public class AccountController {
     private final AccountService accountService;
 
