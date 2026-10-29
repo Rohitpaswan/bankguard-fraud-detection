@@ -2,13 +2,17 @@ package com.banking.frauddetectionservice.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
+
 
 import java.util.Map;
 
 @RequiredArgsConstructor
 @Slf4j
+@Component
 public class TransactionEventConsumer {
     private final FraudDetectionService fraudDetectionService;
 

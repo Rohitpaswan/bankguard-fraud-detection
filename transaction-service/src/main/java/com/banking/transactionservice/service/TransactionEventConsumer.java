@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Slf4j
+@Component
 public class TransactionEventConsumer {
     private final TransactionRepository transactionRepository;
     private final RedisTemplate<String, String> redisTemplate;

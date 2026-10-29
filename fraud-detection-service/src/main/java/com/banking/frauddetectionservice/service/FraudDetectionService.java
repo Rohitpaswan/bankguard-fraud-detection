@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -16,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 @RequiredArgsConstructor
 @Slf4j
+@Service
 public class FraudDetectionService {
 
     private final AccountServiceClient accountServiceClient;
