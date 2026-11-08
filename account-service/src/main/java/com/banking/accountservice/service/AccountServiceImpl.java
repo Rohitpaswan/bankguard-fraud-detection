@@ -2,6 +2,7 @@ package com.banking.accountservice.service;
 
 import com.banking.accountservice.dto.AccountResponse;
 import com.banking.accountservice.dto.CreateAccountRequest;
+import com.banking.accountservice.dto.DeductBalanceResponse;
 import com.banking.accountservice.entity.Account;
 import com.banking.accountservice.entity.AccountStatus;
 import com.banking.accountservice.repository.AccountRepository;
@@ -13,8 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.security.SecureRandom;
-
-import static org.hibernate.annotations.UuidGenerator.Style.RANDOM;
 
 @Service
 @RequiredArgsConstructor
@@ -76,8 +75,9 @@ public class AccountServiceImpl implements AccountService{
     }
 
 
+    @Override
     @Transactional
-    public void deductBalance(String accountNumber, BigDecimal amount) {
+    public DeductBalanceResponse deductBalance(String accountNumber, BigDecimal amount) {
         log.info("Deducting {} from account: {}", amount, accountNumber);
         Account account = repository.findByAccountNumber(accountNumber).orElseThrow(() -> new RuntimeException("User Not Found"));
 
@@ -88,10 +88,16 @@ public class AccountServiceImpl implements AccountService{
         if (account.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient balance");
         }
+        DeductBalanceResponse response = DeductBalanceResponse.builder()
+                .accountNumber(accountNumber)
+                .balanceBefore(account.getBalance())
+                .build();
 
         account.setBalance(account.getBalance().subtract(amount));
-        repository.save(account);
         log.info("Balance deducted. New balance: {}", account.getBalance());
+        repository.save(account);
+        return response;
+
     }
 
 

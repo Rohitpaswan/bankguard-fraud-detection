@@ -25,7 +25,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
-  port: 8084
+  port: 8089
 
 # Account Service URL for Feign Client (Balance Check - Pattern 3)
 account:
@@ -37,6 +37,12 @@ fraud:
   max-transactions-per-minute: 5
   suspicious-amount-multiplier: 3.0
   max-balance-percentage: 0.90
+  detection:
+    minimum-history: 5
+    new-account-limit: 1000.00
+    minAmountFloor: 500.00
+    maxAmountMultiplier: 5.0
+    minHistory: 3
 
 management:
   endpoints:

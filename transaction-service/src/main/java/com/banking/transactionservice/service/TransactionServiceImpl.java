@@ -1,6 +1,7 @@
 package com.banking.transactionservice.service;
 
 import com.banking.transactionservice.client.AccountServiceClient;
+import com.banking.transactionservice.dto.DeductBalanceResponse;
 import com.banking.transactionservice.dto.TransactionResponse;
 import com.banking.transactionservice.dto.TransferRequest;
 import com.banking.transactionservice.entity.Transaction;
@@ -49,7 +50,7 @@ public class TransactionServiceImpl implements TransactionService{
                 request.getAmount());
 
         // SAGA STEP 1: Deduct from sender
-        accountServiceClient.deductBalance(
+        DeductBalanceResponse deductBalaceResponse =  accountServiceClient.deductBalance(
                 request.getSenderAccountNumber(),
                 request.getAmount());
 
@@ -74,7 +75,8 @@ public class TransactionServiceImpl implements TransactionService{
                 savedTransaction.getSenderAccountNumber(),
                 savedTransaction.getReceiverAccountNumber(),
                 savedTransaction.getAmount(),
-                savedTransaction.getDescription()
+                savedTransaction.getDescription(),
+                deductBalaceResponse.getBalanceBefore()
         );
 
         kafkaTemplate.send(TRANSACTION_INITIATED_TOPIC, savedTransaction.getId(), event);
