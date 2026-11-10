@@ -3,6 +3,7 @@ package com.banking.accountservice.controller;
 
 import com.banking.accountservice.dto.AccountResponse;
 import com.banking.accountservice.dto.CreateAccountRequest;
+import com.banking.accountservice.dto.DeductBalanceResponse;
 import com.banking.accountservice.service.AccountService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -14,7 +15,7 @@ import java.math.BigDecimal;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/accounts/")
+@RequestMapping("/api/v1/accounts")
 public class AccountController {
     private final AccountService accountService;
 
@@ -53,11 +54,11 @@ public class AccountController {
      * Called by Transaction Service when transfer is initiated.
      */
     @PutMapping("/{accountNumber}/deduct")
-    public ResponseEntity<String> deductBalance(
+    public ResponseEntity<DeductBalanceResponse> deductBalance(
             @PathVariable String accountNumber,
             @RequestParam BigDecimal amount) {
-        accountService.deductBalance(accountNumber, amount);
-        return ResponseEntity.ok("Balance deducted successfully");
+
+        return ResponseEntity.status(200).body(accountService.deductBalance(accountNumber, amount));
     }
 
 

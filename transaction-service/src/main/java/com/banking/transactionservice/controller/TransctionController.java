@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/transactions")
@@ -40,5 +41,37 @@ public class TransctionController {
             @PathVariable String accountNumber) {
         return ResponseEntity.ok(
                 transactionService.getTransactionHistory(accountNumber));
+    }
+
+
+    //Verify Otp
+    @PostMapping("/{transactionId}/verify")
+    public ResponseEntity<TransactionResponse> verifyTransaction(
+            @PathVariable String transactionId,
+            @RequestParam String otp) {
+        log.info("OTP verification request — transaction: {}",
+                transactionId);
+        return ResponseEntity.ok(
+                transactionService.verifyOTP(transactionId, otp));
+    }
+
+
+    //fetch ttl
+    @GetMapping("/ttl/{transactionId}")
+    public ResponseEntity<Map> getOtpTTL(
+            @PathVariable String transactionId) {
+
+        Long ttl = transactionService.getOtpTTL(transactionId);
+
+        if (ttl == -2) {
+            return ResponseEntity.notFound().build();
+        }
+
+        return ResponseEntity.ok(
+                Map.of(
+                        "transactionId", transactionId,
+                        "remainingTTLSeconds", ttl
+                )
+        );
     }
 }

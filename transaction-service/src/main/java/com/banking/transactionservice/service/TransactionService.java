@@ -12,4 +12,6 @@ public interface TransactionService {
     List<TransactionResponse> getTransactionHistory(String accountNumber);
     void completeTransaction(Transaction transaction);
      void processCleanResult(String transactionID);
+    TransactionResponse verifyOTP(String transactionID, String otp);
+    Long getOtpTTL(String transactionId);
 }

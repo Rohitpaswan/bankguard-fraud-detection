@@ -13,15 +13,18 @@ import com.banking.transactionservice.reposititory.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -34,12 +37,14 @@ public class TransactionServiceImpl implements TransactionService{
     private final ModelMapper mapper;
 
     private final KafkaTemplate<String, Object> kafkaTemplate;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
+
     private static final String TRANSACTION_INITIATED_TOPIC = "transaction.initiated";
     private static final String TRANSACTION_COMPLETED_TOPIC = "transaction.completed";
     private static final String TRANSACTION_REFUNDED_TOPIC = "transaction.refunded";
     private static final String FRAUD_DETECTED_TOPIC = "fraud.detected";
-
+    private static final String VERIFICATION_OTP = "verification:otp:";
+    private static final long MAX_OTP_ATTEMPTS = 3;
 
 
     public TransactionResponse transfer(TransferRequest request){
@@ -130,13 +135,16 @@ public class TransactionServiceImpl implements TransactionService{
     public TransactionResponse verifyOTP(String transactionID, String otp){
         log.info("OTP verification for the transaction: {}", transactionID);
 
+
         Transaction transaction = transactionRepository.findById(transactionID)
                 .orElseThrow(() -> new RuntimeException(
                         "Transaction not found "+transactionID
                 ));
 
-        String otpKey = "verification:otp" + transactionID;
-        String storedOtp = redisTemplate.opsForValue().get(otpKey);
+        String key = getkey(transactionID);
+        Object raw = redisTemplate.opsForHash().get(key, "otp");
+        String storedOtp = raw == null ? null : raw.toString();
+
 
         if (transaction.getStatus() != TransactionStatus.PENDING_VERIFICATION) {
             throw new IllegalStateException("Transaction is not awaiting verification");
@@ -149,20 +157,27 @@ public class TransactionServiceImpl implements TransactionService{
             return mapper.map(transaction, TransactionResponse.class);
         }
 
-        if(!storedOtp.equals(otp)){
-            // BLOCK ACCOUNT AND REFUND
-            log.warn("Wrong OTP - blocking account and refunding: {}", transactionID);
-            redisTemplate.delete(otpKey);
-            blockAccountAndCompensate(transaction,
-                    "Wrong OTP entered - transaction cancelled, "+
-                            "account blocked for security");
+        //check storedOtp with Otp get from user
+        if(otp == null || !MessageDigest.isEqual(
+                storedOtp.getBytes(StandardCharsets.UTF_8),
+                otp.getBytes(StandardCharsets.UTF_8)
+        )){
+            Long attempts = redisTemplate.opsForHash().increment(key, "attempts", 1);
+            if (attempts > MAX_OTP_ATTEMPTS) {
+                redisTemplate.delete(key);
+                blockAccountAndCompensate(transaction, "Wrong OTP entered 3 times - account blocked");
+                return mapper.map(transaction, TransactionResponse.class);
+            }
 
-            return mapper.map(transaction, TransactionResponse.class);
+            log.info("Invalid OTP. Attempts remaining:{} ", MAX_OTP_ATTEMPTS - attempts);
+            throw new IllegalArgumentException("Invalid OTP. Attempts remaining: " + (MAX_OTP_ATTEMPTS - attempts));
+
+
         }
 
         // OTP correct - complete transaction
         log.info("OTP verified - completing transaction: {}", transactionID);
-        redisTemplate.delete(otpKey);
+        redisTemplate.delete(key);
         completeTransaction(transaction);
         return mapper.map(transaction, TransactionResponse.class);
     }
@@ -230,5 +245,22 @@ public class TransactionServiceImpl implements TransactionService{
         completeTransaction(transaction);
     }
 
+    //======================================
+    // Helper Method
+    //======================================
+
+    private String getkey(String transactionID){
+        return   VERIFICATION_OTP + transactionID ;
+    }
+
+
+    public Long getOtpTTL(String transactionId) {
+
+        String key = "verification:otp:" + transactionId;
+
+        return redisTemplate.getExpire(key, TimeUnit.SECONDS);
+
+
+    }
 
 }
