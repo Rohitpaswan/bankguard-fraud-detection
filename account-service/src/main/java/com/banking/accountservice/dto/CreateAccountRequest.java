@@ -29,6 +29,8 @@ public class CreateAccountRequest {
     @NotNull(message = "Account type is required")
     private AccountType accountType;
 
+
+    private BigDecimal dailyTranscationLimit;
     @NotNull(message = "Initial deposit is required")
     @Positive(message = "Initial deposit must be positive")
     private BigDecimal initialDeposit;

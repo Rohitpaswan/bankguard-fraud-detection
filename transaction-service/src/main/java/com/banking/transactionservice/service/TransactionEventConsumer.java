@@ -5,23 +5,25 @@ import com.banking.transactionservice.entity.TransactionStatus;
 import com.banking.transactionservice.reposititory.TransactionRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import java.math.BigDecimal;
+
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+
 
 @RequiredArgsConstructor
 @Slf4j
 @Component
 public class TransactionEventConsumer {
     private final TransactionRepository transactionRepository;
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate redisTemplate;
     private final TransactionService transactionService;
     private static final long OTP_EXPIRY_MINUTES = 5;
 
@@ -56,8 +58,10 @@ public class TransactionEventConsumer {
             String otp = String.format("%06d", (int) (Math.random() * 900000) + 100000);
 
             // Store OTP in Redis - expires in 5 minutes
-            String otpKey = "verification:otp" + transactionId;
-            redisTemplate.opsForValue().set(otpKey, otp, OTP_EXPIRY_MINUTES, TimeUnit.MINUTES);
+            String key = "verification:otp:" + transactionId;
+            redisTemplate.opsForHash().put(key, "otp", otp);        // creates a HASH
+            redisTemplate.opsForHash().put(key, "attempts", "0");   // adds a field to the same HASH
+            redisTemplate.expire(key, Duration.ofMinutes(OTP_EXPIRY_MINUTES));       // one TTL for the whole hash
 
             // Update Status
             transaction.setStatus(TransactionStatus.PENDING_VERIFICATION);
