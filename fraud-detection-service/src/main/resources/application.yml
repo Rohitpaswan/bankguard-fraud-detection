@@ -25,7 +25,7 @@ spring:
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
-  port: 8089
+  port: 8083
 
 # Account Service URL for Feign Client (Balance Check - Pattern 3)
 account:
