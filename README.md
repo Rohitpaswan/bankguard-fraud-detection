@@ -442,7 +442,7 @@ curl http://localhost:8084/actuator/health
 ### Local Development Profile
 
 All services are pre-configured with `application-local.yml` for local development:
-- **MySQL:** `root` / `Rohit@2001` on `localhost:3306`
+- **MySQL:** `root` / `TestUser@123##` on `localhost:3306`
 - **Kafka:** `localhost:29092`
 - **Redis:** `localhost:6379`
 
