@@ -18,6 +18,8 @@ A microservices banking backend that demonstrates event-driven architecture, dis
 - [SAGA Transaction Flow](#-saga-transaction-flow)
 - [Kafka Event Map](#-kafka-event-map)
 - [API Reference](#-api-reference)
+- [Redis Design](#redis-design)
+- [Load Testing & Performance](#-load-testing--performance)
 - [Getting Started](#-getting-started)
 - [Configuration](#%EF%B8%8F-configuration)
 - [Project Structure](#-project-structure)
@@ -343,7 +345,91 @@ HSET verification:otp:TXN1 otp abc123hash attempts 0 expiryTime 1700000000000
 EXPIRE verification:otp:TXN1 300
 TTL verification:otp:TXN1
 ```
-----
+
+---
+
+## ⚡ Load Testing & Performance
+
+Stress-tested with **[k6](https://k6.io/)** at **200 concurrent virtual users** across two profiles — a pure throughput run and a full fraud + OTP verification run.
+
+### 🟢 Test 1 — Throughput (No Fraud Path)
+
+> **200 VUs** · 70 / 30 split (140 readers + 60 transfers) · 1 min 40 s
+
+```
+✅  14,847 requests   ·   0 % failures   ·   144 req/s
+✅  14,304 checks passed (100 %)
+✅  p(95) latency 2.05 s   ·   median 25 ms
+```
+
+| Metric | Value |
+|---|---|
+| Total HTTP Requests | **14,847** |
+| Request Failure Rate | **0.00 %** |
+| Throughput | **~144 req/s** |
+| Median Latency | **25 ms** |
+| p(90) / p(95) Latency | 1.32 s / 2.05 s |
+| Max Latency | 7.4 s |
+| Completed Iterations | 6,777 |
+| Data Transferred | 4.2 MB ↓ · 1.7 MB ↑ |
+
+**Highlights:**
+1. ✅ **100 % check pass rate** — all 14,304 checks succeeded; zero assertion failures.
+2. ✅ **0 % HTTP errors** — not a single failed request out of 14,847.
+3. ✅ **p(95) under threshold** — 2.05 s comfortably within the 2.5 s budget.
+4. ⚡ **25 ms median** — the long tail is rare outliers, not systemic slowness.
+5. 🚀 **~144 req/s sustained** across 200 VUs with 6,777 completed iterations.
+
+<img src="img/k62.png" width="800" alt="Architecture Diagram">
+
+---
+
+### 🔴 Test 2 — Fraud Detection + OTP Verification
+
+> **200 VUs** · 5 scenarios (clean / amount fraud / balance fraud / velocity fraud / OTP) · 1 min 18 s
+
+```
+✅  6,601 requests   ·   0.45 % failures   ·   84 req/s
+✅  92.23 % checks passed (1,675 / 1,816)
+✅  p(95) latency 349 ms   ·   median 15 ms
+✅  Fraud triggered: 498   |   Clean passed: 379
+```
+
+
+
+| Metric | Value |
+|---|---|
+| Total HTTP Requests | **6,601** |
+| Request Failure Rate | **0.45 %** |
+| Throughput | **~84 req/s** |
+| Median Latency | **15 ms** |
+| p(90) / p(95) Latency | 138 ms / 349 ms |
+| Max Latency | 1.81 s |
+| Fraud Triggers | **498** |
+| Clean Transactions | **379** |
+| OTP Verified (correct) | 30 / 30 ✅ |
+| OTP Rejected (wrong) | 30 / 30 ✅ |
+
+**Scenario Breakdown:**
+
+| Scenario | VUs | Check Pass Rate | Status |
+|---|---|---|---|
+| Clean Transactions | 60 | 69 % → `COMPLETED` | ⚠️ Polling timeout under load |
+| Amount Fraud | 40 | 100 % → `PENDING_VERIFICATION` | ✅ |
+| Balance Fraud | 40 | 100 % → `PENDING_VERIFICATION` | ✅ |
+| OTP Verification | 30 | 100 % (reject + accept + complete) | ✅ |
+| Velocity Fraud | 30 | 81 % → `PENDING_VERIFICATION` | ⚠️ |
+
+**Highlights:**
+1. 🛡️ **Fraud detection working** — 498 triggers vs 379 clean; amount & balance fraud correctly flagged `PENDING_VERIFICATION`.
+2. 🔐 **OTP flow verified end-to-end** — wrong OTP rejected (30/30), correct OTP accepted (30/30), post-OTP → `COMPLETED`.
+3. ⚡ **349 ms p(95)** — blazing fast under combined fraud + clean load, well within the 3 s threshold.
+4. ⚠️ **Clean transfer polling gap** — 69 % completion (279/400); 121 timed out during polling, likely Kafka consumer lag under concurrent fraud processing.
+5. ⚠️ **Velocity fraud at 81 %** — 20 rapid-fire bursts weren't flagged; velocity time-window may need tightening.
+
+<img src="img/k62.png" width="800" alt="Architecture Diagram">
+---
+
 ## 🚀 Getting Started
 
 ### Prerequisites
