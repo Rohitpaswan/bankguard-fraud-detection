@@ -380,7 +380,7 @@ Stress-tested with **[k6](https://k6.io/)** at **200 concurrent virtual users** 
 4. ⚡ **25 ms median** — the long tail is rare outliers, not systemic slowness.
 5. 🚀 **~144 req/s sustained** across 200 VUs with 6,777 completed iterations.
 
-<img src="img/k62.png" width="800" alt="Architecture Diagram">
+<img src="img/k62.png" width="800" alt="test">
 
 ---
 
@@ -427,7 +427,7 @@ Stress-tested with **[k6](https://k6.io/)** at **200 concurrent virtual users** 
 4. ⚠️ **Clean transfer polling gap** — 69 % completion (279/400); 121 timed out during polling, likely Kafka consumer lag under concurrent fraud processing.
 5. ⚠️ **Velocity fraud at 81 %** — 20 rapid-fire bursts weren't flagged; velocity time-window may need tightening.
 
-<img src="img/k62.png" width="800" alt="Architecture Diagram">
+<img src="img/k62.png" width="800" alt="test1">
 ---
 
 ## 🚀 Getting Started
